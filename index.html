@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <!-- Basic Page Needs
+      –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta charset="utf-8">
+    <title>Your page title here :)</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Mobile Specific Metas
+      –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- FONT
+      –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600"
+          rel="stylesheet" type="text/css">
+
+    <!-- CSS
+      –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
+
+    <!-- Favicon
+      –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <style type="text/css">
+        .displayfalse {
+            display: none;
+        }
+
+        .display {
+            display: none;
+        }
+
+        .displaytrue {
+            display: block;
+        }
+    </style>
+</head>
+<body ng-app="voteApp">
+
+<!-- Primary Page Layout
+–––––––––––––––––––––––––––––––––––––––––––––––––– -->
+<div class="container" ng-controller="TeamController">
+    <div class="row " style="margin-top: 250px;" ng-show="masterPage">
+        <div class="one-half column">
+            <h4 class="hero-heading">Crete your team. And start a poll</h4>
+            <div class="twelve columns">
+                <input class="u-full-width" ng-model="masterName" type="text" placeholder="Your name"
+                       id="exampleEmailInput">
+                <input class="u-full-width" ng-model="teamName" type="text" placeholder="Team name"
+                       id="exampleEmailInput">
+            </div>
+            <button ng-click="teamController.createTeam(teamName,masterName)" class="button button-primary"
+                    href="http://getskeleton.com">Create Team
+            </button>
+        </div>
+
+    </div>
+
+    <div class="row" style="margin-top: 250px" ng-show="memberPage">
+        <div class="one-half column">
+            <h4 class="hero-heading">Join the Team.</h4>
+            <div class="twelve columns">
+                <input class="u-full-width" ng-model="memberName" type="text" placeholder="Your name"
+                       id="exampleEmailInput">
+            </div>
+            <button ng-click="teamController.joinTeam(memberName, teamName)" class="button button-primary"
+                    href="http://getskeleton.com">Join Team
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+<!-- End Document
+–––––––––––––––––––––––––––––––––––––––––––––––––– -->
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
+<script>
+
+    var TeamService = function (http, ngWebsocket) {
+        // create web socket
+        // all communications are through web socket. 
+
+        return {
+            createTeam: function (teamName, masterName,suucessCallback) {
+                var data = { teamName: teamName, masterName, masterName };
+                http({
+                    url : '/create',
+                    data : data,
+                    method : 'POST',
+                    headers : {'Content-Type': 'application/json'}
+                }).then(function (response) {
+                    if (response) {
+                        successCallback(response.data);
+                    }
+                }, function () {
+                    console.error('Error details');
+                });
+
+                return teamName;
+            },
+            joinTeam: function (teamName, memeberName, successCallback) {
+                // retunr the team url
+                if (memeberName)
+                    memeberName = memeberName.toLowerCase().replace(new RegExp(" ", "g"), "_");
+                    var data = {teamName : teamName, memberName: memeberName};
+                console.log('Calling from service');
+                http({
+                    url : '/join',
+                    data : data,
+                    method : 'POST',
+                    headers : {'Content-Type': 'application/json'}
+                }).then(function (response) {
+                    if (response) {
+                        successCallback(response.data);
+                    }
+                }, function () {
+                    console.error('Error details');
+                });
+
+            }
+        };
+
+    };
+
+    var TeamController = function (scope, location, teamService) {
+        this.scope = scope;
+        this.scope.teamName = "";
+        this.scope.masterName = "";
+        this.scope.teamController = this;
+        this.scope.masterPage = false;
+        this.scope.memberPage = false;
+        this.scope.memberName = "";
+        this.location = location;
+        this.teamService = teamService;
+        this.init();
+    };
+
+    TeamController.prototype.init = function () {
+        var teamName = window.location.pathname;
+        if (teamName == '/') {
+            this.scope.masterPage = true;
+            this.scope.memberPage = false;
+        } else {
+            this.scope.teamName = teamName.substr(1, teamName.length);
+            this.scope.masterPage = false;
+            this.scope.memberPage = true;
+        }
+        console.log(this.scope.masterPage);
+    };
+
+    TeamController.prototype.createTeam = function (teamName, masterName) {
+        teamName = teamName.toLowerCase().replace(new RegExp(" ", "g"), "_");
+        masterName = masterName.toLowerCase().replace(new RegExp(" ", "g"), "_");
+        console.log(this.teamService.createTeam(teamName,masterName, function (data) {
+            console.log(data);
+        }));
+
+    };
+    TeamController.prototype.joinTeam = function (userName, teamName) {
+        console.log("Joining team " + teamName + ", user : " + userName);
+        teamName = teamName.toLowerCase().replace(new RegExp(" ", "g"), "_");
+        userName = userName.toLowerCase().replace(new RegExp(" ", "g"), "_");
+        this.teamService.joinTeam(teamName, userName, function(data){ console.log(data)});
+
+    };
+
+    var voteApp = angular.module('voteApp', []);
+    voteApp.factory('TeamService', ['$http','ngWebsocket',TeamService]);
+    voteApp.controller('TeamController', ['$scope','$location', 'TeamService', TeamController]);
+
+</script>
+</body>
+</html>
